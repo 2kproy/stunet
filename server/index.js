@@ -5,6 +5,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const channelMembers = {}; 
+// channelMembers[channelId] = ['user1', 'user2', ...]
 
 const { createUser, verifyUser } = require('./usersDb');
 const { generateToken, verifyToken } = require('./auth');
@@ -130,17 +132,46 @@ io.on('connection', (socket) => {
   // Событие: пользователь входит в голосовой "канал"
   socket.on('join-voice-channel', (channelId) => {
     socket.join(channelId);
+
+    // Инициализируем массив, если не существует
+    if (!channelMembers[channelId]) {
+      channelMembers[channelId] = [];
+    }
+    // Добавляем, если нет (на всякий случай проверим)
+    const username = socket.user.username;
+    if (!channelMembers[channelId].includes(username)) {
+      channelMembers[channelId].push(username);
+    }
+    io.to(channelId).emit('channel-members', channelMembers[channelId]);
+
     console.log(`${socket.user.username} joined voice channel ${channelId}`);
   });
 
   // Событие: пользователь покидает голосовой "канал"
   socket.on('leave-voice-channel', (channelId) => {
     socket.leave(channelId);
-    console.log(`${socket.user.username} left voice channel ${channelId}`);
+
+    const username = socket.user.username;
+    if (channelMembers[channelId]) {
+      // Удалим юзера
+      channelMembers[channelId] = channelMembers[channelId].filter(u => u !== username);
+
+      console.log(`${username} left voice channel ${channelId}`);
+      // Рассылаем всем
+      io.to(channelId).emit('channel-members', channelMembers[channelId]);
+    }
   });
 
   // Когда пользователь отключается
   socket.on('disconnect', () => {
+    for (const [channelId, members] of Object.entries(channelMembers)) {
+      const index = members.indexOf(socket.user.username);
+      if (index !== -1) {
+        members.splice(index, 1); // удаляем
+        // Рассылаем обновлённый список
+        io.to(channelId).emit('channel-members', channelMembers[channelId]);
+      }
+    }
     console.log(`User disconnected: ${socket.id}`);
   });
 });
