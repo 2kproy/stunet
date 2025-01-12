@@ -12,6 +12,7 @@ let localStream = null;
 let audioContext = null;
 let sourceNode = null;
 let gainNode = null;
+let processedStream = null;
 
 // Элементы
 const regUsername = document.getElementById('regUsername');
@@ -36,6 +37,7 @@ const leaveChannelBtn = document.getElementById('leaveChannelBtn');
 
 const localAudio = document.getElementById('localAudio');
 const remoteAudios = document.getElementById('remoteAudios');
+const channelMembersList = document.getElementById('channelMembers');
 
 // Элементы микро
 const micSettingsBtn = document.getElementById('micSettingsBtn');
@@ -143,11 +145,24 @@ function connectSocketIO(token) {
     messagesList.appendChild(li);
   });
 
+  //====================Список участников============================================================================
+
+  socket.on('channel-members', (members) => {
+    console.log('Got channel-members:', members);
+    // Очищаем список
+    channelMembersList.innerHTML = '';
+    // Рисуем участников
+    members.forEach((m) => {
+      const li = document.createElement('li');
+      li.textContent = m;
+      channelMembersList.appendChild(li);
+    });
+  });
   // ---------------------
   // МУЛЬТИПОЛЬЗОВАТЕЛЬСКИЙ ГОЛОСОВОЙ КАНАЛ (MESH)
   // ---------------------
   
-initLocalStream();
+  initLocalStream();
 
   joinChannelBtn.addEventListener('click', () => {
     const channelId = channelIdInput.value.trim();
@@ -175,6 +190,8 @@ initLocalStream();
     joinStatus.textContent = `Вы подключены к каналу ${channelId}`; //поправить
     // Как только мы в канале, WebRTC по mesh-принципу будет создавать офферы
     // при onnegotiationneeded, чтобы связаться с остальными.
+    
+
   });
 
   leaveChannelBtn.addEventListener('click', () => {
@@ -206,7 +223,7 @@ initLocalStream();
   });
 }
 
-//====================Настройка микро============================================================================
+
 // === 1) Открываем/закрываем окно настроек ===
 micSettingsBtn.addEventListener('click', () => {
   micSettingsModal.style.display = 'block';
@@ -281,17 +298,36 @@ async function initLocalStream() {
       echoCancellation: echoCancellationEnabled,
       autoGainControl: autoGainEnabled
     });
+    
+
 
     // 4.2) Создаём AudioContext и GainNode для управления громкостью
     audioContext = new AudioContext();
     gainNode = audioContext.createGain();
     gainNode.gain.value = micVolume; // Применяем уровень громкости
 
-    // 4.3) Создаём sourceNode из localStream
+    // 4.3) Создаём processedStream из localStream
+    // 3) Создаём sourceNode
     sourceNode = audioContext.createMediaStreamSource(localStream);
+    console.log('Created sourceNode:', sourceNode);
+    // 1) Создаём "виртуальный выход" MediaStreamDestination
+    const processedDest = audioContext.createMediaStreamDestination();
 
-    // 4.4) Соединяем: source -> gainNode -> destination
-    sourceNode.connect(gainNode)
+    // 2) Соединяем: sourceNode -> gainNode -> processedDest
+    sourceNode.connect(gainNode).connect(processedDest);
+
+    // 3) Сохраняем глобально (или в window), чтобы потом взять треки
+    processedStream = processedDest.stream;
+
+    // -- Если хотите всё же СЛЫШАТЬ себя (самопрослушка):
+    //    Раскомментируйте следующую строку, НО тогда услышите свой голос:
+    // gainNode.connect(audioContext.destination);
+
+    // 4.3) Создаём sourceNode из localStream
+    // sourceNode = audioContext.createMediaStreamSource(localStream);
+
+    // // 4.4) Соединяем: source -> gainNode -> destination
+    // sourceNode.connect(gainNode)
     //sourceNode.connect(audioContext.destination); вывод на динамики
 
     // 4.5) Также, чтобы слушать поток в <audio> напрямую, можно
@@ -352,12 +388,20 @@ function createPeerConnection(username) {
   });
   // === Конец добавленных логов ===
 
-  // Добавляем локальные треки
-  if (localStream) {
-    localStream.getTracks().forEach((track) => {
-      pc.addTrack(track, localStream);
+  // Добавляем ИМЕННО обработанные треки, если они есть
+  if (processedStream) {
+    processedStream.getTracks().forEach((track) => {
+      pc.addTrack(track, processedStream);
     });
+  } else {
+    console.warn('processedStream is null, no local tracks to add');
   }
+  // // Добавляем локальные треки
+  // if (localStream) {
+  //   localStream.getTracks().forEach((track) => {
+  //     pc.addTrack(track, localStream);
+  //   });
+  // }
 
   // Когда получаем трек от собеседника
   pc.ontrack = (event) => {
@@ -366,7 +410,7 @@ function createPeerConnection(username) {
       audio.autoplay = true;
       remoteAudios.appendChild(audio);
       remoteAudioElements[username] = audio;
-    }
+    } 
     remoteAudioElements[username].srcObject = event.streams[0];
   };
 
