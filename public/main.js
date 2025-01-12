@@ -291,7 +291,8 @@ async function initLocalStream() {
     sourceNode = audioContext.createMediaStreamSource(localStream);
 
     // 4.4) Соединяем: source -> gainNode -> destination
-    sourceNode.connect(gainNode).connect(audioContext.destination);
+    sourceNode.connect(gainNode)
+    //sourceNode.connect(audioContext.destination); вывод на динамики
 
     // 4.5) Также, чтобы слушать поток в <audio> напрямую, можно
     // (A) назначить localAudio.srcObject = localStream;
