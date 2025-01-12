@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Discord-like</title>
+  <style>
+    #micSettingsModal {
+      display: none; /* Скрыто по умолчанию */
+      position: fixed; 
+      top: 50%; left: 15%;
+      transform: translate(-50%, -50%);
+      padding: 20px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <h1>Чики брики</h1>
+
+  <!-- Авторизация -->
+  <div id="authForms">
+    <div>
+      <h2>Регистрация (пароль на похуй вводи)</h2>
+      <input id="regUsername" placeholder="Логин ебни" />
+      <input id="regPassword" type="password" placeholder="Теперь пароль" />
+      <button id="registerBtn">Зарегистрироваться</button>
+    </div>
+    <div>
+      <h2>Логин</h2>
+      <input id="loginUsername" placeholder="Свой чмошный ник сюда" />
+      <input id="loginPassword" type="password" placeholder="qwerty епт" />
+      <button id="loginBtn">Войти</button>
+      <p id="loginStatus"></p>
+    </div>
+  </div>
+
+
+
+  <div id="mainUI" style="display:none;"></div>
+    <!-- Чат -->
+    <div id="chatArea" style="display: none;">
+      <h2>Текстовый чат</h2>
+      Сообщения не сохраняются
+      <ul id="messages"></ul>
+      <input id="messageInput" placeholder="Введите сообщение..." />
+      <button id="sendBtn">Отправить</button>
+    </div>
+
+    <hr />
+
+    <!-- Голосовой канал -->
+    <div id="voiceArea" style="display: none;">
+      <h2>Голосовой канал (1 вводи)</h2>
+      <p id="joinStatus"></p>
+      <input id="channelId" placeholder="Channel ID" />
+      <p id="v "></p>
+      <button id="joinChannelBtn">Присоединиться к каналу</button>
+      <button id="leaveChannelBtn" style="display:none;">Выйти из канала</button>
+
+      <h3>Ваш звук</h3>
+      <button id="micSettingsBtn">Настройки микрофона</button>
+
+      <audio id="localAudio" autoplay muted></audio>
+      <div id="remoteAudios"></div> <!-- Здесь будем создавать теги <audio> для каждого собеседника -->
+    </div>
+    
+      <!-- Модальное окно с настройками -->
+  <div id="micSettingsModal">
+    <h2>Настройки микрофона</h2>
+    <label>
+      <input type="checkbox" id="noiseSuppressionChk" checked />
+      Шумоподавление
+    </label><br/>
+    <label>
+      <input type="checkbox" id="echoCancellationChk" checked />
+      Эхоподавление
+    </label><br/>
+    <label>
+      <input type="checkbox" id="autoGainChk" checked />
+      Автогейн
+    </label><br/>
+    <label>
+      Громкость:
+      <input type="range" id="micVolumeRange" min="0" max="150" value="100" />
+      <span id="micVolumeVal">100</span>
+    </label><br/><br/>
+ 
+
+    <button id="applyMicSettingsBtn">Применить</button>
+    <button id="closeMicSettingsBtn">Закрыть</button>
+  </div>  
+  <h3>Ваш микрофон</h3>
+  <!-- <audio id="localAudio" autoplay></audio> -->
+
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
