@@ -145,6 +145,7 @@ io.on('connection', (socket) => {
     io.to(channelId).emit('channel-members', channelMembers[channelId]);
 
     console.log(`${socket.user.username} joined voice channel ${channelId}`);
+    console.log(`in ${channelId} is: ${channelMembers[channelId]}`);
   });
 
   // Событие: пользователь покидает голосовой "канал"
