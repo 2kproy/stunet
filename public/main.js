@@ -4,7 +4,7 @@ let socket = null;
 
 // Параметры настроек микро(по умолчанию)
 let noiseSuppressionEnabled = true;
-let echoCancellationEnabled = true;
+let echoCancellationEnabled = false;
 let autoGainEnabled = true;
 let micVolume = 1.0;  // 1.0 = 100%
 
@@ -30,6 +30,7 @@ const sendBtn = document.getElementById('sendBtn');
 const messagesList = document.getElementById('messages');
 
 const voiceArea = document.getElementById('voiceArea');
+const divchanneld = document.getElementById('divchanneld');
 const channelIdInput = document.getElementById('channelId');
 const joinStatus = document.getElementById('joinStatus');
 const joinChannelBtn = document.getElementById('joinChannelBtn');
@@ -37,6 +38,7 @@ const leaveChannelBtn = document.getElementById('leaveChannelBtn');
 
 const localAudio = document.getElementById('localAudio');
 const remoteAudios = document.getElementById('remoteAudios');
+const divchannelMembers = document.getElementById('divchannelMembers');
 const channelMembersList = document.getElementById('channelMembers');
 
 // Элементы микро
@@ -144,7 +146,7 @@ function connectSocketIO(token) {
     li.textContent = `${data.user}: ${data.text}`;
     messagesList.appendChild(li);
   });
-
+  
   //====================Список участников============================================================================
 
   socket.on('channel-members', (members) => {
@@ -161,7 +163,7 @@ function connectSocketIO(token) {
   // ---------------------
   // МУЛЬТИПОЛЬЗОВАТЕЛЬСКИЙ ГОЛОСОВОЙ КАНАЛ (MESH)
   // ---------------------
-  
+
   initLocalStream();
 
   joinChannelBtn.addEventListener('click', () => {
@@ -170,7 +172,7 @@ function connectSocketIO(token) {
     socket.emit('join-voice-channel', channelId);
     currentChannelId = channelId;
 
-  // Через секунду (или сразу) попробуем вручную вызвать createOffer
+    // Через секунду (или сразу) попробуем вручную вызвать createOffer
 	  setTimeout(async () => {
 		if (!peerConnections['myTemporaryId']) {
 		  peerConnections['myTemporaryId'] = createPeerConnection('myTemporaryId');
@@ -186,6 +188,10 @@ function connectSocketIO(token) {
 		  });
 		}
 	  }, 1000);
+
+    // Проигрываем звук
+    playJoinSound();
+    
     hideJoin();
     joinStatus.textContent = `Вы подключены к каналу ${channelId}`; //поправить
     // Как только мы в канале, WebRTC по mesh-принципу будет создавать офферы
@@ -200,10 +206,13 @@ function connectSocketIO(token) {
       currentChannelId = null;
       cleanupPeerConnections();
       showJoin();
+      // Проигрываем звук
+      playLeaveSound();
       joinStatus.textContent = 'Вы не подключены к голосовому каналу';
     }
   });
 
+  
   socket.on('voice-offer', async (data) => {
     const fromUser = data.fromUser;
     console.log(`Got voice-offer from ${fromUser}`);
@@ -519,10 +528,26 @@ function hideAuthForms() {
 }
 
 function showJoin() {
+  document.getElementById('divchannelMembers').style.display = 'none';
   document.getElementById('joinChannelBtn').style.display = 'block';
   document.getElementById('leaveChannelBtn').style.display = 'none';
+  document.getElementById('divchanneld').style.display = 'block';
 }
 function hideJoin() {
+  document.getElementById('divchannelMembers').style.display = 'block';
   document.getElementById('joinChannelBtn').style.display = 'none';
   document.getElementById('leaveChannelBtn').style.display = 'block';
+  document.getElementById('divchanneld').style.display = 'none';
+}
+function playJoinSound() {
+  const audio = new Audio('/Resources/join.mp3');
+  audio.play().catch((err) => {
+    console.warn('Audio play failed:', err);
+  });
+}
+function playLeaveSound() {
+  const audio = new Audio('/Resources/leave.mp3');
+  audio.play().catch((err) => {
+    console.warn('Audio play failed:', err);
+  });
 }
