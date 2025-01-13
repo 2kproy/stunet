@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Mini Discord-like</title>
+  <title>Ебать того в рот</title>
+  <link rel="icon" href="/Resources/roflicon.ico">
+  <!-- <link rel="icon" href="https://steamuserimages-a.akamaihd.net/ugc/1916862835888241797/A0B9B4FB726FCD0A08CD21EA9ACF83AE93C006CA/"> -->
   <style>
     #micSettingsModal {
       display: none; /* Скрыто по умолчанию */
@@ -18,9 +20,10 @@
 </head>
 <body>
   <h1>Чики брики</h1>
-
+  
   <!-- Авторизация -->
   <div id="authForms">
+    <img src= "/Resources/rofl.png">
     <div>
       <h2>Регистрация (пароль на похуй вводи)</h2>
       <input id="regUsername" placeholder="Логин ебни" />
@@ -38,7 +41,7 @@
 
 
 
-  <div id="mainUI" style="display:none;"></div>
+  <div id="mainUI" style="display:none;">
     <!-- Чат -->
     <div id="chatArea" style="display: none;">
       <h2>Текстовый чат</h2>
@@ -54,8 +57,13 @@
     <div id="voiceArea" style="display: none;">
       <h2>Голосовой канал (1 вводи)</h2>
       <p id="joinStatus"></p>
-      <input id="channelId" placeholder="Channel ID" />
-      <p id="v "></p>
+      <div id="divchanneld" style="display: block;">
+        <input id="channelId" placeholder="Channel ID" />
+      </div>
+      <div id="divchannelMembers" style="display:none;">
+        <h3>Участники в канале:</h3>
+        <ul id="channelMembers">Пока никого нет</ul>
+      </div> 
       <button id="joinChannelBtn">Присоединиться к каналу</button>
       <button id="leaveChannelBtn" style="display:none;">Выйти из канала</button>
 
@@ -65,38 +73,35 @@
       <audio id="localAudio" autoplay muted></audio>
       <div id="remoteAudios"></div> <!-- Здесь будем создавать теги <audio> для каждого собеседника -->
     </div>
-    
       <!-- Модальное окно с настройками -->
-  <div id="micSettingsModal">
-    <h2>Настройки микрофона</h2>
-    <label>
-      <input type="checkbox" id="noiseSuppressionChk" checked />
-      Шумоподавление
-    </label><br/>
-    <label>
-      <input type="checkbox" id="echoCancellationChk" checked />
-      Эхоподавление
-    </label><br/>
-    <label>
-      <input type="checkbox" id="autoGainChk" checked />
-      Автогейн
-    </label><br/>
-    <label>
-      Громкость:
-      <input type="range" id="micVolumeRange" min="0" max="150" value="100" />
-      <span id="micVolumeVal">100</span>
-    </label><br/><br/>
- 
-
-    <button id="applyMicSettingsBtn">Применить</button>
-    <button id="closeMicSettingsBtn">Закрыть</button>
-  </div>  
+    <div id="micSettingsModal">
+      <h2>Настройки микрофона</h2>
+      <label>
+        <input type="checkbox" id="noiseSuppressionChk" checked />
+        Шумоподавление
+      </label><br/>
+      <label>
+        <input type="checkbox" id="echoCancellationChk" />
+        Эхоподавление
+      </label><br/>
+      <label>
+        <input type="checkbox" id="autoGainChk" checked />
+        Автогейн
+      </label><br/>
+      <label>
+        Громкость:
+        <input type="range" id="micVolumeRange" min="0" max="150" value="100" />
+        <span id="micVolumeVal">100</span>
+      </label><br/><br/>
   
-  <h3>Участники в канале:</h3>
-  <ul id="channelMembers"></ul>
 
-  <h3>Ваш микрофон</h3>
-  <audio id="localAudio" autoplay></audio>
+      <button id="applyMicSettingsBtn">Применить</button>
+      <button id="closeMicSettingsBtn">Закрыть</button>
+    </div>  
+
+    <h3>Ваш микрофон</h3>
+    <audio id="localAudio" autoplay></audio></div>
+  </div>
 
 
   <script src="/socket.io/socket.io.js"></script>
