@@ -1,8 +1,30 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval';">
+  <!-- Yandex.Market Widget -->
+  <!-- <script async src="https://aflt.market.yandex.ru/widget/script/api" type="text/javascript"></script>
+  <script type="text/javascript">
+      (function (w) {
+          function start() {
+              w.removeEventListener("YaMarketAffiliateLoad", start);
+              w.YaMarketAffiliate.createWidget({type:"sku",
+    containerId:"marketWidget",
+    params:{clid:11131822,
+      searchModelIds:[853459793 ],
+      searchAdult:true,
+      themeId:1 } });
+          }
+          w.YaMarketAffiliate
+              ? start()
+              : w.addEventListener("YaMarketAffiliateLoad", start);
+      })(window);
+  </script>
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.59/build/spline-viewer.js"></script> -->
+  <!-- End Yandex.Market Widget -->
+
   <meta charset="UTF-8">
-  <title>Ебать того в рот</title>
+  <title>Легкое общение тута</title>
   <link rel="icon" href="/Resources/roflicon.ico">
   <!-- <link rel="icon" href="https://steamuserimages-a.akamaihd.net/ugc/1916862835888241797/A0B9B4FB726FCD0A08CD21EA9ACF83AE93C006CA/"> -->
   <style>
@@ -16,23 +38,57 @@
       border: 1px solid #ccc;
       z-index: 9999;
     }
+	#background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1; /* Ставим задний фон за остальной контент */
+	}
+    .spline-container {
+      display: flex;
+      justify-content: left; /* Центровка по горизонтали */
+      align-items: center; /* Центровка по вертикали */
+    }
+	spline-viewer {
+	  position: absolute; /* Абсолютное позиционирование */
+      width: 150px; /* Ширина элемента */
+      height: 100px; /* Высота элемента */
+      border: 0px solid #000; /* Дополнительно: рамка вокруг элемента */
+      border-radius: 10px; /* Скругленные углы */
+	  margin-top: 50px; /* Отступ сверху */
+    }
+	#logo {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
-  <h1>Чики брики</h1>
+	<!--<spline-viewer id="background" loading-anim-type="spinner-small-light" url="https://prod.spline.design/7lKE1iVyzXjzMnFe/scene.splinecode"></spline-viewer>-->
+	<h1>Чики брики</h1>
   
   <!-- Авторизация -->
   <div id="authForms">
-    <img src= "/Resources/rofl.png">
+    <table>
+      <tbody>
+      <tr>
+      <td><img src= "/Resources/rofl.png"></td>
+      <td style="width: 1000.5px"><div id="marketWidget"></div></td>
+      </tr>
+      </tbody>
+    </table>
     <div>
-      <h2>Регистрация (пароль на похуй вводи)</h2>
-      <input id="regUsername" placeholder="Логин ебни" />
+      <h1>Я устал...</h1>
+      <h2>Регистрация (ура, пароль теперь захэширован и его не узнаю даже я)</h2>
+      <input id="regUsername" placeholder="Логин чиркани" />
       <input id="regPassword" type="password" placeholder="Теперь пароль" />
       <button id="registerBtn">Зарегистрироваться</button>
+      <button id="loginBtn">Войти</button>
     </div>
-    <div>
+    <div style="display: none;">
       <h2>Логин</h2>
-      <input id="loginUsername" placeholder="Свой ахуенный ник сюда" />
+      <input id="loginUsername" placeholder="Логин чиркани" />
       <input id="loginPassword" type="password" placeholder="qwerty епт" />
       <button id="loginBtn">Войти</button>
       <p id="loginStatus"></p>
@@ -68,12 +124,17 @@
       <button id="leaveChannelBtn" style="display:none;">Выйти из канала</button>
 
       <h3>Ваш звук</h3>
+      <label>
+        <input type="checkbox" id="muteMicChk" />
+        Мьют микрофона
+      </label><br/>
+
       <button id="micSettingsBtn">Настройки микрофона</button>
 
       <audio id="localAudio" autoplay muted></audio>
       <div id="remoteAudios"></div> <!-- Здесь будем создавать теги <audio> для каждого собеседника -->
     </div>
-      <!-- Модальное окно с настройками -->
+    <!-- Модальное окно с настройками -->
     <div id="micSettingsModal">
       <h2>Настройки микрофона</h2>
       <label>
@@ -93,6 +154,10 @@
         <input type="range" id="micVolumeRange" min="0" max="150" value="100" />
         <span id="micVolumeVal">100</span>
       </label><br/><br/>
+      <label>
+        <input type="checkbox" id="hearMyselfChk" />
+        Слышать себя
+      </label><br/><br/>
   
 
       <button id="applyMicSettingsBtn">Применить</button>
@@ -100,10 +165,39 @@
     </div>  
 
     <h3>Ваш микрофон</h3>
+		<div class="spline-container">
+		<spline-viewer url="https://prod.spline.design/DqVet7C-TXzLC06o/scene.splinecode"></spline-viewer>
+		</div>
     <audio id="localAudio" autoplay></audio></div>
   </div>
 
+  <script>
+    // Функция для удаления всех логотипов
+    function removeAllSplineLogos() {
+      const splineViewers = document.querySelectorAll('spline-viewer');
+      splineViewers.forEach(splineViewer => {
+        const shadowRoot = splineViewer.shadowRoot; // Доступ к Shadow DOM
+        if (shadowRoot) {
+          const logoElements = shadowRoot.querySelectorAll('#logo'); // Ищем все элементы с ID "logo"
+          logoElements.forEach(logo => logo.remove()); // Удаляем каждый найденный логотип
+          console.log('Удалены логотипы из:', splineViewer);
+        }
+      });
+    }
 
+    // Проверяем и удаляем логотипы после загрузки контента
+    document.addEventListener('DOMContentLoaded', () => {
+      // Повторяем процесс несколько раз для гарантии
+      const interval = setInterval(() => {
+        removeAllSplineLogos();
+      }, 500);
+
+      // Останавливаем проверку через 5 секунд
+      setTimeout(() => {
+        clearInterval(interval);
+      }, 5000);
+    });
+  </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
 </body>
