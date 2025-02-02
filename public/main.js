@@ -67,7 +67,7 @@ registerBtn.addEventListener('click', async () => {
   }
 
   try {
-    const res = await fetch('/register', {
+    const res = await fetch('api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -76,27 +76,34 @@ registerBtn.addEventListener('click', async () => {
     if (data.error) {
       alert(`Ошибка: ${data.error}`);
     } else {
-      alert('Записал тебя карандашиком, можешь попытаться войти');
+      alert('Записал тебя карандашиком, ' + username );
+      token = data.token;
+      loginStatus.textContent = 'Успешный вход!';
+
+      // Подключаемся к Socket.IO с токеном
+      connectSocketIO(token);
+      hideAuthForms();
     }
   } catch (err) {
     console.error(err);
     alert('Ошибка запроса');
   }
+  
 });
 
 // ======================
 // 2) Логин
 // ======================
 loginBtn.addEventListener('click', async () => {
-  const username = loginUsername.value.trim();
-  const password = loginPassword.value.trim();
+  const username = regUsername.value.trim();
+  const password = regPassword.value.trim();
   if (!username || !password) {
     alert('Заполните поля!');
     return;
   }
 
   try {
-    const res = await fetch('/login', {
+    const res = await fetch('api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -105,6 +112,7 @@ loginBtn.addEventListener('click', async () => {
     if (data.error) {
       loginStatus.textContent = `Ошибка: ${data.error}`;
     } else if (data.token) {
+      console.log('Успешный вход');
       token = data.token;
       loginStatus.textContent = 'Успешный вход!';
 
@@ -117,6 +125,37 @@ loginBtn.addEventListener('click', async () => {
     alert('Ошибка запроса');
   }
 });
+// loginBtn.addEventListener('click', async () => {
+//   const username = loginUsername.value.trim();
+//   const password = loginPassword.value.trim();
+//   if (!username || !password) {
+//     alert('Заполните поля!');
+//     return;
+//   }
+
+//   try {
+//     const res = await fetch('api/auth/login', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ username, password })
+//     });
+//     const data = await res.json();
+//     if (data.error) {
+//       loginStatus.textContent = `Ошибка: ${data.error}`;
+//     } else if (data.token) {
+//       console.log('Успешный вход');
+//       token = data.token;
+//       loginStatus.textContent = 'Успешный вход!';
+
+//       // Подключаемся к Socket.IO с токеном
+//       connectSocketIO(token);
+//       hideAuthForms();
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     alert('Ошибка запроса');
+//   }
+// });
 
 function connectSocketIO(token) {
   socket = io({
@@ -164,9 +203,10 @@ function connectSocketIO(token) {
   // МУЛЬТИПОЛЬЗОВАТЕЛЬСКИЙ ГОЛОСОВОЙ КАНАЛ (MESH)
   // ---------------------
 
-  initLocalStream();
+  
 
   joinChannelBtn.addEventListener('click', () => {
+    initLocalStream();
     const channelId = channelIdInput.value.trim();
     if (!channelId) return;
     socket.emit('join-voice-channel', channelId);
@@ -200,7 +240,9 @@ function connectSocketIO(token) {
 
   });
 
+
   leaveChannelBtn.addEventListener('click', () => {
+    stopLocalStream()
     if (currentChannelId) {
       socket.emit('leave-voice-channel', currentChannelId);
       currentChannelId = null;
@@ -211,6 +253,8 @@ function connectSocketIO(token) {
       joinStatus.textContent = 'Вы не подключены к голосовому каналу';
     }
   });
+
+
 
   
   socket.on('voice-offer', async (data) => {
@@ -232,16 +276,76 @@ function connectSocketIO(token) {
   });
 }
 
+function rejoinChannel() {
+  console.log(currentChannelId);
+  if (currentChannelId) {
+      // Сначала выходим из текущего канала
+      stopLocalStream();
+      socket.emit('leave-voice-channel', currentChannelId);
+      cleanupPeerConnections();
+      
+      // Затем заново входим в канал
+      initLocalStream();
+      socket.emit('join-voice-channel', currentChannelId);
+
+      // Через секунду (или сразу) попробуем вручную вызвать createOffer
+      setTimeout(async () => {
+          if (!peerConnections['myTemporaryId']) {
+              peerConnections['myTemporaryId'] = createPeerConnection('myTemporaryId');
+          }
+          const pc = peerConnections['myTemporaryId'];
+          if (pc) {
+              console.log('Manually triggering createOffer()');
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socket.emit('voice-offer', {
+                  offer,
+                  channelId: currentChannelId
+              });
+          }
+      }, 1000);
+
+      // Проигрываем звук
+      playJoinSound();
+      
+      hideJoin();
+      joinStatus.textContent = `Вы переподключены к каналу ${currentChannelId}`;
+  }
+}
 
 // === 1) Открываем/закрываем окно настроек ===
-micSettingsBtn.addEventListener('click', () => {
+// micSettingsBtn.addEventListener('click', () => {
+//   micSettingsModal.style.display = 'block';
+// });
+
+// closeMicSettingsBtn.addEventListener('click', () => {
+//   micSettingsModal.style.display = 'none';
+// });
+micSettingsBtn.addEventListener('click', async () => {
+  if (!currentChannelId) {
+    await initLocalStream();
+    }
   micSettingsModal.style.display = 'block';
 });
 
 closeMicSettingsBtn.addEventListener('click', () => {
+  if (!currentChannelId) {
+    stopLocalStream();
+  }
   micSettingsModal.style.display = 'none';
 });
 
+document.getElementById('muteMicChk').addEventListener('change', (event) => {
+  const isMuted = event.target.checked;
+  if (localStream) {
+      localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+  }
+});
+
+document.getElementById('hearMyselfChk').addEventListener('change', (event) => {
+  const hearMyselfEnabled = event.target.checked;
+  localAudio.muted = !hearMyselfEnabled;
+});
 // === 2) Реакция на ползунок громкости (отображаем значение) ===
 micVolumeRange.addEventListener('input', () => {
   micVolumeVal.textContent = micVolumeRange.value;
@@ -260,10 +364,24 @@ applyMicSettingsBtn.addEventListener('click', async () => {
   micVolume = vol / 100.0;
 
   // Закрываем окно
-  micSettingsModal.style.display = 'none';
+  //micSettingsModal.style.display = 'none';
   
   // Перезапускаем микрофон с новыми параметрами
-  await initLocalStream();
+  //initLocalStream();
+  rejoinChannel();
+});
+
+document.getElementById('hearMyselfChk').addEventListener('change', (event) => {
+  const hearMyselfEnabled = event.target.checked;
+  if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+          if (hearMyselfEnabled) {
+              localAudio.srcObject = new MediaStream([track]);
+          } else {
+              localAudio.srcObject = null;
+          }
+      });
+  }
 });
 
 async function applyMicSett() {
@@ -275,9 +393,6 @@ async function applyMicSett() {
   // Громкость (0..100 => 0..1)
   const vol = parseInt(micVolumeRange.value, 10);
   micVolume = vol / 100.0;
-  
-  // Перезапускаем микрофон с новыми параметрами
-  await initLocalStream();
 }
 
 
@@ -330,28 +445,33 @@ async function initLocalStream() {
 
     // -- Если хотите всё же СЛЫШАТЬ себя (самопрослушка):
     //    Раскомментируйте следующую строку, НО тогда услышите свой голос:
-    // gainNode.connect(audioContext.destination);
+    //gainNode.connect(audioContext.destination);
 
     // 4.3) Создаём sourceNode из localStream
     // sourceNode = audioContext.createMediaStreamSource(localStream);
 
     // // 4.4) Соединяем: source -> gainNode -> destination
-    // sourceNode.connect(gainNode)
-    //sourceNode.connect(audioContext.destination); вывод на динамики
+    //sourceNode.connect(gainNode)
+    //sourceNode.connect(audioContext.destination); //вывод на динамики
 
     // 4.5) Также, чтобы слушать поток в <audio> напрямую, можно
     // (A) назначить localAudio.srcObject = localStream;
     // ИЛИ (B) использовать "прокачанный" через AudioContext поток:
-    //    let dest = audioContext.createMediaStreamDestination();
-    //    gainNode.connect(dest);
-    //    localAudio.srcObject = dest.stream;
+      //  let dest = audioContext.createMediaStreamDestination();
+      //  gainNode.connect(dest);
+      //  localAudio.srcObject = dest.stream;
 
     // Для простоты, назначим напрямую исходный поток:
-    //localAudio.srcObject = localStream;
+    localAudio.srcObject = localStream;
     localAudio.muted = true
 
   } catch (err) {
     console.error('Ошибка доступа к микрофону:', err);
+  }
+}
+async function stopLocalStream() {
+  if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
   }
 }
 //===================================================================================================================
