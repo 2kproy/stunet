@@ -1,4 +1,7 @@
-// server/index.js
+//server/index.js
+
+// const connectDB = require('../config/database');
+// connectDB();
 
 const express = require('express');
 const http = require('http');
@@ -8,7 +11,12 @@ const cors = require('cors');
 const channelMembers = {}; 
 // channelMembers[channelId] = ['user1', 'user2', ...]
 
-const { createUser, verifyUser } = require('./usersDb');
+const mongoose = require('mongoose');
+require('dotenv').config();
+const authRoutes = require('./routes/auth');
+
+
+// const { createUser, verifyUser } = require('./usersDb');
 const { generateToken, verifyToken } = require('./auth');
 
 const app = express();
@@ -24,48 +32,63 @@ const io = new Server(server, {
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
+app.use(express.json()); // Обязательно добавляем парсинг JSON
 
+// ====== бд ======
+
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error('MongoDB connection error:', err));
 // ====== МАРШРУТЫ АВТОРИЗАЦИИ ======
 
-// POST /register { username, password }
-app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ error: 'Введите username и password' });
 
-  // Проверяем, не существует ли пользователь
-  const userExists = await verifyUser(username, password);
-  if (userExists) {
-    return res.status(400).json({ error: 'Пользователь уже существует' });
-  }
+// Маршруты
+app.use('/api/auth', authRoutes);
+
+
+// // POST /register { username, password }
+// app.post('/register', async (req, res) => {
+//   const { username, password } = req.body;
+//   if (!username || !password)
+//     return res.status(400).json({ error: 'Введите username и password' });
+
+//   // Проверяем, не существует ли пользователь
+//   const userExists = await verifyUser(username, password);
+//   if (userExists) {
+//     return res.status(400).json({ error: 'Пользователь уже существует' });
+//   }
   
-  // Создаём нового пользователя
-  await createUser(username, password);
-  return res.json({ success: true });
-});
+//   // Создаём нового пользователя
+//   await createUser(username, password);
+//   return res.json({ success: true });
+// });
 
-// POST /login { username, password }
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ error: 'Введите username и password' });
+// // POST /login { username, password }
+// app.post('/login', async (req, res) => {
+//   const { username, password } = req.body;
+//   if (!username || !password)
+//     return res.status(400).json({ error: 'Введите username и password' });
 
-  // Проверяем пользователя
-  const user = await verifyUser(username, password);
-  if (!user) {
-    return res.status(401).json({ error: 'Неверные логин/пароль' });
-  }
+//   // Проверяем пользователя
+//   const user = await verifyUser(username, password);
+//   if (!user) {
+//     return res.status(401).json({ error: 'Неверные логин/пароль' });
+//   }
 
-  // Генерируем JWT
-  const token = generateToken(user);
-  return res.json({ token });
-});
+  // // Генерируем JWT
+  // const token = generateToken(user);
+  // return res.json({ token });
+// });
 
 // ====== SOCKET.IO ======
 
 // Миддлвара Socket.IO для проверки JWT при подключении
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
+  console.log("Полученный токен:", token);
   if (!token) {
     return next(new Error('Токен не передан'));
   }
